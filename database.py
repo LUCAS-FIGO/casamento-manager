@@ -1,4 +1,6 @@
+import os
 import pyodbc
+from dotenv import load_dotenv
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -30,12 +32,15 @@ class Gasto:
 
 class DatabaseManager:
     def __init__(self):
-        # Altere estas configurações conforme seu ambiente
+        load_dotenv()
+        
         self.connection_string = (
-            "DRIVER={SQL Server};"
-            "SERVER=DESKTOP-G6K4M8T\SQL2019;"  # Altere para seu servidor
-            "DATABASE=CasamentoDB;"  # Altere para seu banco
-            "Trusted_Connection=yes;"  # Windows Authentication
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            f"SERVER={os.getenv('DB_SERVER')};"
+            f"DATABASE={os.getenv('DB_NAME')};"
+            f"UID={os.getenv('DB_USER')};"
+            f"PWD={os.getenv('DB_PASSWORD')};"
+            "Encrypt=yes;TrustServerCertificate=no;"
         )
 
     def get_connection(self):
