@@ -1,9 +1,17 @@
 import os
 import pyodbc
+import logging
 from dotenv import load_dotenv
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import List, Optional
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 @dataclass
 class Demanda:
@@ -34,6 +42,12 @@ class DatabaseManager:
     def __init__(self):
         load_dotenv()
         
+        # Validação das variáveis de ambiente
+        required_env_vars = ['DB_SERVER', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        if missing_vars:
+            raise ValueError(f"Variáveis de ambiente faltando: {', '.join(missing_vars)}")
+        
         self.connection_string = (
             "DRIVER={ODBC Driver 17 for SQL Server};"
             f"SERVER={os.getenv('DB_SERVER')};"
@@ -41,10 +55,15 @@ class DatabaseManager:
             f"UID={os.getenv('DB_USER')};"
             f"PWD={os.getenv('DB_PASSWORD')};"
             "Encrypt=yes;TrustServerCertificate=no;"
+            "Connection Timeout=30;"
         )
 
     def get_connection(self):
-        return pyodbc.connect(self.connection_string)
+        try:
+            return pyodbc.connect(self.connection_string)
+        except pyodbc.Error as e:
+            logging.error(f"Erro ao conectar ao banco: {e}")
+            raise
 
     def criar_tabelas(self):
         queries = [
@@ -105,7 +124,7 @@ class DatabaseManager:
                 conn.commit()
                 return True
         except Exception as e:
-            print(f"Erro ao inserir demanda: {e}")
+            logging.error(f"Erro ao inserir demanda: {e}")
             return False
 
     def obter_demandas(self):
@@ -123,7 +142,7 @@ class DatabaseManager:
                     data_criacao=row[5]
                 ) for row in rows]
         except Exception as e:
-            print(f"Erro ao obter demandas: {e}")
+            logging.error(f"Erro ao obter demandas: {e}")
             return []
 
     def inserir_orcamento(self, demanda_id: int, fornecedor: str, 
@@ -138,7 +157,7 @@ class DatabaseManager:
                 conn.commit()
                 return True
         except Exception as e:
-            print(f"Erro ao inserir orçamento: {e}")
+            logging.error(f"Erro ao inserir orçamento: {e}")
             return False
 
     def inserir_gasto(self, descricao: str, valor: float) -> bool:
@@ -152,7 +171,7 @@ class DatabaseManager:
                 conn.commit()
                 return True
         except Exception as e:
-            print(f"Erro ao inserir gasto: {e}")
+            logging.error(f"Erro ao inserir gasto: {e}")
             return False
 
     def obter_gastos(self):
@@ -168,5 +187,68 @@ class DatabaseManager:
                     data=row[3]
                 ) for row in rows]
         except Exception as e:
-            print(f"Erro ao obter gastos: {e}")
+            logging.error(f"Erro ao obter gastos: {e}")
             return []
+
+    def atualizar_demanda(self, id: int, nome: str, descricao: str, 
+                         prioridade: int, status: str) -> bool:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE Demandas 
+                    SET nome=?, descricao=?, prioridade=?, status=?
+                    WHERE id=?
+                """, (nome, descricao, prioridade, status, id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logging.error(f"Erro ao atualizar demanda: {e}")
+            return False
+
+    def deletar_demanda(self, id: int) -> bool:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Primeiro deleta os orçamentos relacionados
+                cursor.execute("DELETE FROM Orcamentos WHERE demanda_id=?", (id,))
+                # Depois deleta a demanda
+                cursor.execute("DELETE FROM Demandas WHERE id=?", (id,))
+                conn.commit()
+                return True
+        except Exception as e:
+            logging.error(f"Erro ao deletar demanda: {e}")
+            return False
+
+    def obter_orcamentos_por_demanda(self, demanda_id: int) -> List[Orcamento]:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM Orcamentos 
+                    WHERE demanda_id=? 
+                    ORDER BY valor ASC
+                """, (demanda_id,))
+                rows = cursor.fetchall()
+                return [Orcamento(
+                    id=row[0],
+                    demanda_id=row[1],
+                    fornecedor=row[2],
+                    valor=Decimal(str(row[3])),
+                    descricao=row[4],
+                    status=row[5]
+                ) for row in rows]
+        except Exception as e:
+            logging.error(f"Erro ao obter orçamentos: {e}")
+            return []
+
+    def obter_total_gastos(self) -> Decimal:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT SUM(valor) FROM Gastos")
+                result = cursor.fetchone()[0]
+                return Decimal(str(result)) if result else Decimal('0')
+        except Exception as e:
+            logging.error(f"Erro ao calcular total de gastos: {e}")
+            return Decimal('0')
