@@ -95,39 +95,26 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Cria tabela Demandas se não existir
+                # Recria tabela Orçamentos
                 cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
                 BEGIN
-                    CREATE TABLE Demandas (
-                        id INT IDENTITY(1,1) PRIMARY KEY,
-                        nome NVARCHAR(100) NOT NULL,
-                        descricao NVARCHAR(200) NOT NULL,
-                        prioridade NVARCHAR(20),
-                        status NVARCHAR(50),
-                        data_criacao DATETIME DEFAULT GETDATE(),
-                        valor DECIMAL(10,2)
-                    )
+                    DROP TABLE Orcamentos
                 END
-                """)
-                
-                # Cria tabela Orçamentos se não existir
-                cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
-                BEGIN
-                    CREATE TABLE Orcamentos (
-                        id INT IDENTITY(1,1) PRIMARY KEY,
-                        demanda_id INT,
-                        fornecedor NVARCHAR(100),
-                        valor DECIMAL(10,2),
-                        data_criacao DATETIME DEFAULT GETDATE(),
-                        FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
-                    )
-                END
+
+                CREATE TABLE Orcamentos (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    demanda_id INT,
+                    fornecedor NVARCHAR(100),
+                    descricao NVARCHAR(200),  -- Nova coluna
+                    valor DECIMAL(10,2),
+                    data_criacao DATETIME DEFAULT GETDATE(),
+                    FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
+                )
                 """)
                 
                 conn.commit()
-                st.success("✅ Tabelas verificadas/criadas com sucesso!")
+                st.success("✅ Tabela de orçamentos atualizada!")
                 
         except Exception as e:
             st.error("❌ Erro ao criar tabelas")
@@ -180,19 +167,20 @@ class Database:
             st.error(f"Erro ao obter demandas: {str(e)}")
             return []
 
-    def inserir_orcamento(self, demanda_id: int, fornecedor: str, 
-                         valor: float, descricao: str, status: str) -> bool:
+    def inserir_orcamento(self, demanda_id, fornecedor, descricao, valor):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO Orcamentos (demanda_id, fornecedor, valor, descricao, status)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (demanda_id, fornecedor, valor, descricao, status))
+                    INSERT INTO Orcamentos 
+                    (demanda_id, fornecedor, descricao, valor)
+                    VALUES (?, ?, ?, ?)
+                """, (demanda_id, fornecedor, descricao, valor))
                 conn.commit()
                 return True
+                
         except Exception as e:
-            logging.error(f"Erro ao inserir orçamento: {e}")
+            st.error(f"Erro ao inserir orçamento: {str(e)}")
             return False
 
     def inserir_gasto(self, descricao: str, valor: float) -> bool:

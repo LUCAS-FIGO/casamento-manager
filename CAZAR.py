@@ -84,6 +84,46 @@ def listar_demandas():
         st.error("❌ Erro ao listar demandas")
         st.error(f"Detalhes: {str(e)}")
 
+def cadastrar_orcamento(demanda_id):
+    with st.form(f"form_orcamento_{demanda_id}", clear_on_submit=True):
+        st.subheader("Novo Orçamento")
+        
+        fornecedor = st.text_input("Fornecedor")
+        descricao = st.text_area("Descrição do Orçamento")
+        valor = st.text_input("Valor (R$)", "0,00")
+        
+        submitted = st.form_submit_button("Adicionar Orçamento")
+        
+        if submitted:
+            try:
+                # Validação
+                if not fornecedor or not descricao:
+                    st.error("❌ Fornecedor e Descrição são obrigatórios!")
+                    return
+                
+                # Tratamento do valor
+                valor_limpo = valor.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                try:
+                    valor_float = float(valor_limpo)
+                except ValueError:
+                    st.error("❌ Formato de valor inválido!")
+                    st.info("💡 Use apenas números, exemplo: 1500,00")
+                    return
+                
+                # Inserção
+                if st.session_state.db.inserir_orcamento(
+                    demanda_id=demanda_id,
+                    fornecedor=fornecedor,
+                    descricao=descricao,
+                    valor=valor_float
+                ):
+                    st.success("✅ Orçamento cadastrado com sucesso!")
+                    st.session_state.update_demandas = True
+                    
+            except Exception as e:
+                st.error("❌ Erro ao cadastrar orçamento")
+                st.error(f"Detalhes: {str(e)}")
+
 def main():
     # Inicialização do estado da sessão
     if 'update_demandas' not in st.session_state:
@@ -124,15 +164,8 @@ def main():
                     format_func=lambda x: x.nome
                 )
                 
-                with st.form("novo_orcamento"):
-                    fornecedor = st.text_input("Fornecedor")
-                    valor = st.number_input("Valor", min_value=0.0, step=100.0)
-                    descricao = st.text_area("Descrição do Orçamento")
-                    status = "Em análise"
-                    
-                    if st.form_submit_button("Adicionar Orçamento"):
-                        if db.inserir_orcamento(demanda_selecionada.id, fornecedor, valor, descricao, status):
-                            st.success("Orçamento adicionado com sucesso!")
+                cadastrar_orcamento(demanda_selecionada.id)
+        
             else:
                 st.warning("Cadastre algumas demandas primeiro!")
 
