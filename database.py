@@ -121,24 +121,34 @@ class Database:
 
     def inserir_demanda(self, nome, descricao, prioridade, valor=None):
         try:
-            # Converte o valor para decimal se não for None
-            valor_decimal = float(valor) if valor and valor.strip() != '' else 0.0
-            
+            # Trata o valor antes da inserção
+            if valor is None or valor == '':
+                valor_decimal = 0.0
+            else:
+                try:
+                    # Remove R$ e outros caracteres especiais
+                    valor_limpo = valor.replace('R$', '').replace('.', '').replace(',', '.').strip()
+                    valor_decimal = float(valor_limpo)
+                except ValueError:
+                    st.error("❌ Erro: Formato de valor inválido")
+                    st.info("💡 Use apenas números, exemplo: 1500,00")
+                    return False
+
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO Demandas (nome, descricao, prioridade, status, valor)
+                    INSERT INTO Demandas 
+                    (nome, descricao, prioridade, status, valor)
                     VALUES (?, ?, ?, 'Pendente', ?)
                 """, (nome, descricao, prioridade, valor_decimal))
                 conn.commit()
                 st.success("✅ Demanda inserida com sucesso!")
-        except ValueError as ve:
-            st.error("❌ Erro: O valor informado não é um número válido")
-            raise ve
+                return True
+
         except Exception as e:
             st.error("❌ Erro ao inserir demanda")
             st.error(f"Detalhes: {str(e)}")
-            raise e
+            return False
 
     def obter_demandas(self):
         try:
