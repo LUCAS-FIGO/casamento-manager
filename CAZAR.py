@@ -26,17 +26,47 @@ def main():
         )
 
         if opcao == "Demandas":
-            st.header("Cadastro de Demandas")
+            st.subheader("Cadastro de Demandas")
             
-            with st.form("nova_demanda"):
-                nome = st.text_input("Nome da Demanda")
-                descricao = st.text_area("Descrição")
-                prioridade = st.slider("Prioridade", 1, 5, 3)
-                status = "Pendente"
-                
-                if st.form_submit_button("Adicionar Demanda"):
-                    if db.inserir_demanda(nome, descricao, prioridade, status):
-                        st.success(f"Demanda '{nome}' criada com sucesso!")
+            # Campos do formulário
+            nome = st.text_input("Nome da Demanda")
+            descricao = st.text_area("Descrição")
+            prioridade = st.slider("Prioridade", 1, 5, 3)
+            valor = st.text_input("Valor (R$)", "0,00")
+            
+            if st.button("Adicionar Demanda"):
+                try:
+                    # Validação dos campos
+                    if not nome or not descricao:
+                        st.error("❌ Nome e Descrição são obrigatórios!")
+                        return
+                    
+                    # Tratamento do valor
+                    valor_limpo = valor.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                    if not valor_limpo:
+                        valor_limpo = "0"
+                        
+                    try:
+                        valor_float = float(valor_limpo)
+                    except ValueError:
+                        st.error("❌ Formato de valor inválido!")
+                        st.info("💡 Use apenas números, exemplo: 1500,00")
+                        return
+                    
+                    # Inserção no banco
+                    if db.inserir_demanda(
+                        nome=nome,
+                        descricao=descricao,
+                        prioridade=str(prioridade),
+                        valor=valor_float
+                    ):
+                        st.success("✅ Demanda cadastrada com sucesso!")
+                        # Limpa os campos
+                        st.experimental_rerun()
+                        
+                except Exception as e:
+                    st.error("❌ Erro ao cadastrar demanda")
+                    st.error(f"Detalhes: {str(e)}")
 
             # Exibir demandas cadastradas
             st.subheader("Demandas Cadastradas")
