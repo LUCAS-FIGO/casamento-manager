@@ -55,6 +55,35 @@ def cadastrar_demanda():
                 st.error("❌ Erro ao cadastrar demanda")
                 st.error(f"Detalhes: {str(e)}")
 
+def listar_demandas():
+    try:
+        demandas = st.session_state.db.obter_demandas()
+        
+        if not demandas:
+            st.info("📝 Nenhuma demanda cadastrada.")
+            return
+
+        for demanda in demandas:
+            with st.expander(f"{demanda.nome} (Prioridade: {demanda.prioridade})"):
+                st.write(f"**Descrição:** {demanda.descricao}")
+                st.write(f"**Status:** {demanda.status}")
+                st.write(f"**Valor:** R$ {demanda.valor:,.2f}")
+                st.write(f"**Data:** {demanda.data_criacao.strftime('%d/%m/%Y %H:%M')}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("✏️ Editar", key=f"edit_{demanda.id}"):
+                        st.session_state.demanda_para_editar = demanda
+                with col2:
+                    if st.button("❌ Excluir", key=f"del_{demanda.id}"):
+                        if st.session_state.db.excluir_demanda(demanda.id):
+                            st.success("Demanda excluída com sucesso!")
+                            st.rerun()
+                
+    except Exception as e:
+        st.error("❌ Erro ao listar demandas")
+        st.error(f"Detalhes: {str(e)}")
+
 def main():
     # Inicialização do estado da sessão
     if 'update_demandas' not in st.session_state:

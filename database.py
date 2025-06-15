@@ -19,8 +19,9 @@ class Demanda:
     id: int
     nome: str
     descricao: str
-    prioridade: int
+    prioridade: str
     status: str
+    valor: float
     data_criacao: datetime
 
 @dataclass
@@ -143,14 +144,27 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, nome, descricao, prioridade, status, data_criacao, valor
+                    SELECT id, nome, descricao, prioridade, status, valor, data_criacao
                     FROM Demandas
                     ORDER BY data_criacao DESC
                 """)
-                return cursor.fetchall()
+                
+                demandas = []
+                for row in cursor.fetchall():
+                    demandas.append(Demanda(
+                        id=row[0],
+                        nome=row[1],
+                        descricao=row[2],
+                        prioridade=row[3],
+                        status=row[4],
+                        valor=float(row[5]),
+                        data_criacao=row[6]
+                    ))
+                return demandas
+                
         except Exception as e:
             st.error(f"Erro ao obter demandas: {str(e)}")
-            raise e
+            return []
 
     def inserir_orcamento(self, demanda_id: int, fornecedor: str, 
                          valor: float, descricao: str, status: str) -> bool:
@@ -225,6 +239,17 @@ class Database:
                 return True
         except Exception as e:
             logging.error(f"Erro ao deletar demanda: {e}")
+            return False
+
+    def excluir_demanda(self, demanda_id):
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM Demandas WHERE id = ?", (demanda_id,))
+                conn.commit()
+                return True
+        except Exception as e:
+            st.error(f"Erro ao excluir demanda: {str(e)}")
             return False
 
     def obter_orcamentos_por_demanda(self, demanda_id: int) -> List[Orcamento]:
