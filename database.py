@@ -44,7 +44,7 @@ class Database:
         try:
             # Configurações do banco
             self.connection_string = (
-                "Driver={ODBC Driver 17 for SQL Server};"
+                "Driver={ODBC Driver 18 for SQL Server};"
                 f"Server={st.secrets['connections']['sql']['DB_SERVER']};"
                 f"Database={st.secrets['connections']['sql']['DB_NAME']};"
                 f"UID={st.secrets['connections']['sql']['DB_USER']};"
