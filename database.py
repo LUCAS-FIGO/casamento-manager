@@ -43,7 +43,7 @@ class Gasto:
 class Database:
     def __init__(self):
         try:
-            # String de conexão com driver 17
+            # Configurações de conexão
             self.connection_string = (
                 "Driver={ODBC Driver 17 for SQL Server};"
                 "Server=tcp:cazar-server.database.windows.net,1433;"
@@ -55,20 +55,12 @@ class Database:
                 "Connection Timeout=30;"
             )
             
-            # Debug: Lista drivers disponíveis
-            drivers = pyodbc.drivers()
-            st.write("Drivers ODBC disponíveis:")
-            st.write(drivers)
-            
-            # Testa conexão
-            with self.get_connection() as conn:
-                st.success("✅ Conexão estabelecida!")
-                
-            # Após conexão bem sucedida, criar tabelas
-            self.criar_tabelas()
+            # Verifica se as tabelas existem
+            if not self.tabelas_existem():
+                self.criar_tabelas()
                 
         except Exception as e:
-            st.error("❌ Erro na conexão")
+            st.error("❌ Erro na conexão com banco de dados")
             st.error(f"Detalhes: {str(e)}")
             raise e
             
@@ -79,41 +71,63 @@ class Database:
             st.error(f"Erro de conexão: {str(e)}")
             raise e
 
+    def tabelas_existem(self):
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Verifica se as tabelas existem
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE TABLE_NAME IN ('Demandas', 'Orcamentos')
+                """)
+                
+                count = cursor.fetchone()[0]
+                return count == 2
+                
+        except Exception as e:
+            st.error(f"Erro ao verificar tabelas: {str(e)}")
+            return False
+
     def criar_tabelas(self):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Recria tabela Demandas com todas as colunas necessárias
+                # Cria tabela Demandas se não existir
                 cursor.execute("""
-                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
-                    DROP TABLE Orcamentos;
-                    
-                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
-                    DROP TABLE Demandas;
-
-                CREATE TABLE Demandas (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
-                    nome NVARCHAR(100) NOT NULL,
-                    descricao NVARCHAR(200) NOT NULL,
-                    prioridade NVARCHAR(20),
-                    status NVARCHAR(50),
-                    data_criacao DATETIME DEFAULT GETDATE(),
-                    valor DECIMAL(10,2)
-                );
-
-                CREATE TABLE Orcamentos (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
-                    demanda_id INT,
-                    fornecedor NVARCHAR(100),
-                    valor DECIMAL(10,2),
-                    data_criacao DATETIME DEFAULT GETDATE(),
-                    FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
-                );
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE Demandas (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        nome NVARCHAR(100) NOT NULL,
+                        descricao NVARCHAR(200) NOT NULL,
+                        prioridade NVARCHAR(20),
+                        status NVARCHAR(50),
+                        data_criacao DATETIME DEFAULT GETDATE(),
+                        valor DECIMAL(10,2)
+                    )
+                END
+                """)
+                
+                # Cria tabela Orçamentos se não existir
+                cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE Orcamentos (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        demanda_id INT,
+                        fornecedor NVARCHAR(100),
+                        valor DECIMAL(10,2),
+                        data_criacao DATETIME DEFAULT GETDATE(),
+                        FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
+                    )
+                END
                 """)
                 
                 conn.commit()
-                st.success("✅ Tabelas recriadas com sucesso!")
+                st.success("✅ Tabelas verificadas/criadas com sucesso!")
                 
         except Exception as e:
             st.error("❌ Erro ao criar tabelas")
