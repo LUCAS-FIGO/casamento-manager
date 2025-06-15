@@ -8,7 +8,58 @@ st.set_page_config(
     layout="wide"
 )
 
+def cadastrar_demanda():
+    st.subheader("Cadastro de Demandas")
+    
+    # Campos do formulário usando form
+    with st.form("form_demanda", clear_on_submit=True):
+        nome = st.text_input("Nome da Demanda")
+        descricao = st.text_area("Descrição")
+        prioridade = st.slider("Prioridade", 1, 5, 3)
+        valor = st.text_input("Valor (R$)", "0,00")
+        
+        # Botão de submit do form
+        submitted = st.form_submit_button("Adicionar Demanda")
+        
+        if submitted:
+            try:
+                # Validação dos campos
+                if not nome or not descricao:
+                    st.error("❌ Nome e Descrição são obrigatórios!")
+                    return
+                
+                # Tratamento do valor
+                valor_limpo = valor.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                if not valor_limpo:
+                    valor_limpo = "0"
+                    
+                try:
+                    valor_float = float(valor_limpo)
+                except ValueError:
+                    st.error("❌ Formato de valor inválido!")
+                    st.info("💡 Use apenas números, exemplo: 1500,00")
+                    return
+                
+                # Inserção no banco
+                if st.session_state.db.inserir_demanda(
+                    nome=nome,
+                    descricao=descricao,
+                    prioridade=str(prioridade),
+                    valor=valor_float
+                ):
+                    st.success("✅ Demanda cadastrada com sucesso!")
+                    # Força atualização da lista de demandas
+                    st.session_state.update_demandas = True
+                    
+            except Exception as e:
+                st.error("❌ Erro ao cadastrar demanda")
+                st.error(f"Detalhes: {str(e)}")
+
 def main():
+    # Inicialização do estado da sessão
+    if 'update_demandas' not in st.session_state:
+        st.session_state.update_demandas = False
+        
     st.title("Sistema de Gestão de Casamento 💒")
     
     try:
@@ -26,55 +77,12 @@ def main():
         )
 
         if opcao == "Demandas":
-            st.subheader("Cadastro de Demandas")
-            
-            # Campos do formulário
-            nome = st.text_input("Nome da Demanda")
-            descricao = st.text_area("Descrição")
-            prioridade = st.slider("Prioridade", 1, 5, 3)
-            valor = st.text_input("Valor (R$)", "0,00")
-            
-            if st.button("Adicionar Demanda"):
-                try:
-                    # Validação dos campos
-                    if not nome or not descricao:
-                        st.error("❌ Nome e Descrição são obrigatórios!")
-                        return
-                    
-                    # Tratamento do valor
-                    valor_limpo = valor.replace("R$", "").replace(".", "").replace(",", ".").strip()
-                    if not valor_limpo:
-                        valor_limpo = "0"
-                        
-                    try:
-                        valor_float = float(valor_limpo)
-                    except ValueError:
-                        st.error("❌ Formato de valor inválido!")
-                        st.info("💡 Use apenas números, exemplo: 1500,00")
-                        return
-                    
-                    # Inserção no banco
-                    if db.inserir_demanda(
-                        nome=nome,
-                        descricao=descricao,
-                        prioridade=str(prioridade),
-                        valor=valor_float
-                    ):
-                        st.success("✅ Demanda cadastrada com sucesso!")
-                        # Limpa os campos
-                        st.experimental_rerun()
-                        
-                except Exception as e:
-                    st.error("❌ Erro ao cadastrar demanda")
-                    st.error(f"Detalhes: {str(e)}")
+            cadastrar_demanda()
 
-            # Exibir demandas cadastradas
-            st.subheader("Demandas Cadastradas")
-            demandas = db.obter_demandas()
-            for d in demandas:
-                st.write(f"**{d.nome}** (Prioridade: {d.prioridade})")
-                st.write(d.descricao)
-                st.write("---")
+            # Lista de demandas (atualiza quando necessário)
+            if st.session_state.update_demandas:
+                listar_demandas()
+                st.session_state.update_demandas = False
 
         elif opcao == "Orçamentos":
             st.header("Gestão de Orçamentos")
