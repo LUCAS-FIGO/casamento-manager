@@ -1,49 +1,33 @@
 import streamlit as st
 from decimal import Decimal
-import logging
-import pyodbc
-from database import Database
 from datetime import datetime
-
-# Configuração do logging
-logging.basicConfig(level=logging.INFO)
+from database import Database
 
 # Configuração da página
-st.set_page_config(page_title="Gestor de Casamento", page_icon="💒")
-
-def check_odbc_drivers():
-    try:
-        drivers = pyodbc.drivers()
-        st.write("### Drivers ODBC Disponíveis:")
-        for driver in drivers:
-            st.write(f"- {driver}")
-        return True
-    except Exception as e:
-        st.error(f"Erro ao verificar drivers ODBC: {str(e)}")
-        logging.error(f"Erro ODBC: {str(e)}")
-        return False
+st.set_page_config(
+    page_title="Gestor de Casamento",
+    page_icon="💒",
+    layout="wide"
+)
 
 def main():
     try:
-        # Verifica drivers antes de iniciar a aplicação
-        if not check_odbc_drivers():
-            st.error("Drivers ODBC não encontrados!")
-            return
-
-        # Inicialização do banco de dados
+        st.title("Sistema de Gestão de Casamento 💒")
+        
+        # Inicializa conexão com banco de dados
         if 'db' not in st.session_state:
             st.session_state.db = Database()
-            st.session_state.db.criar_tabelas()
-        
+
         db = st.session_state.db
 
-        # Sidebar para navegação
-        menu = st.sidebar.selectbox(
+        # Menu lateral
+        st.sidebar.title("Menu")
+        opcao = st.sidebar.selectbox(
             "Selecione uma opção",
             ["Demandas", "Orçamentos", "Relatório Financeiro"]
         )
 
-        if menu == "Demandas":
+        if opcao == "Demandas":
             st.header("Cadastro de Demandas")
             
             with st.form("nova_demanda"):
@@ -64,7 +48,7 @@ def main():
                 st.write(d.descricao)
                 st.write("---")
 
-        elif menu == "Orçamentos":
+        elif opcao == "Orçamentos":
             st.header("Gestão de Orçamentos")
             
             demandas = db.obter_demandas()
@@ -113,8 +97,8 @@ def main():
         st.sidebar.markdown("### Desenvolvido com ❤️")
     
     except Exception as e:
-        st.error("Erro na aplicação. Verifique os logs para mais detalhes.")
-        logging.error(f"Erro: {str(e)}")
+        st.error("Erro na aplicação. Por favor, contate o suporte.")
+        st.error(f"Detalhes: {str(e)}")
 
 if __name__ == "__main__":
     main()

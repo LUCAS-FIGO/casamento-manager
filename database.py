@@ -39,36 +39,33 @@ class Gasto:
     valor: Decimal
     data: datetime
 
-class Database:  # Certifique-se que a classe se chama Database e não DatabaseManager
+class Database:
     def __init__(self):
-        self.server = st.secrets["connections"]["sql"]["DB_SERVER"]
-        self.database = st.secrets["connections"]["sql"]["DB_NAME"]
-        self.username = st.secrets["connections"]["sql"]["DB_USER"]
-        self.password = st.secrets["connections"]["sql"]["DB_PASSWORD"]
-        
-        self.connection_string = (
-            "Driver={SQL Server};"
-            f"Server={self.server};"
-            f"Database={self.database};"
-            f"UID={self.username};"
-            f"PWD={self.password};"
-        )
-        
-        # Configurar logging
-        logging.basicConfig(
-            filename='database.log',
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-    
+        try:
+            self.server = st.secrets["connections"]["sql"]["DB_SERVER"]
+            self.database = st.secrets["connections"]["sql"]["DB_NAME"]
+            self.username = st.secrets["connections"]["sql"]["DB_USER"]
+            self.password = st.secrets["connections"]["sql"]["DB_PASSWORD"]
+            
+            self.connection_string = (
+                "Driver={ODBC Driver 17 for SQL Server};"
+                f"Server={self.server};"
+                f"Database={self.database};"
+                f"UID={self.username};"
+                f"PWD={self.password};"
+            )
+        except Exception as e:
+            st.error("Erro ao configurar conexão com banco de dados")
+            st.error(f"Detalhes: {str(e)}")
+            raise e
+
     def get_connection(self):
         try:
-            conn = pyodbc.connect(self.connection_string, timeout=30)
-            logging.info("Conexão com banco de dados estabelecida com sucesso")
-            return conn
-        except pyodbc.Error as e:
-            logging.error(f"Erro ao conectar ao banco de dados: {str(e)}")
-            raise Exception("Erro de conexão com o banco de dados. Verifique as configurações.")
+            return pyodbc.connect(self.connection_string)
+        except Exception as e:
+            st.error("Erro ao conectar ao banco de dados")
+            st.error(f"Detalhes: {str(e)}")
+            raise e
 
     def criar_tabelas(self):
         queries = [
