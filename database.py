@@ -42,9 +42,9 @@ class Gasto:
 class Database:
     def __init__(self):
         try:
-            # String de conexão do Azure SQL
+            # String de conexão com driver 17
             self.connection_string = (
-                "Driver={ODBC Driver 18 for SQL Server};"
+                "Driver={ODBC Driver 17 for SQL Server};"
                 "Server=tcp:cazar-server.database.windows.net,1433;"
                 "Database=CasamentoDB;"
                 "Uid=lufigotdb;"
@@ -54,12 +54,17 @@ class Database:
                 "Connection Timeout=30;"
             )
             
-            # Testa conexão inicial
+            # Debug: Lista drivers disponíveis
+            drivers = pyodbc.drivers()
+            st.write("Drivers ODBC disponíveis:")
+            st.write(drivers)
+            
+            # Testa conexão
             with self.get_connection() as conn:
-                st.success("✅ Conexão com banco de dados estabelecida!")
+                st.success("✅ Conexão estabelecida!")
                 
         except Exception as e:
-            st.error("❌ Erro na conexão com banco de dados")
+            st.error("❌ Erro na conexão")
             st.error(f"Detalhes: {str(e)}")
             raise e
             
