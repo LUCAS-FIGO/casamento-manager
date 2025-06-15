@@ -1,7 +1,12 @@
 import streamlit as st
 from decimal import Decimal
-from database import Database  # Alterado de DatabaseManager para Database
+import logging
+import pyodbc
+from database import Database
 from datetime import datetime
+
+# Configuração do logging
+logging.basicConfig(level=logging.INFO)
 
 # Configuração da página
 st.set_page_config(page_title="Gestor de Casamento", page_icon="💒")
@@ -20,6 +25,7 @@ def check_odbc_drivers():
         return False
 
 def main():
+    st.title("Sistema de Gerenciamento de Casamento 💒")
     try:
         # Verifica drivers antes de iniciar a aplicação
         if not check_odbc_drivers():
