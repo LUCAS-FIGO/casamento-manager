@@ -119,17 +119,25 @@ class Database:
             st.error(f"Detalhes: {str(e)}")
             raise e
 
-    def inserir_demanda(self, nome, descricao, prioridade, valor=0):
+    def inserir_demanda(self, nome, descricao, prioridade, valor=None):
         try:
+            # Converte o valor para decimal se não for None
+            valor_decimal = float(valor) if valor and valor.strip() != '' else 0.0
+            
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO Demandas (nome, descricao, prioridade, status, valor)
                     VALUES (?, ?, ?, 'Pendente', ?)
-                """, (nome, descricao, prioridade, valor))
+                """, (nome, descricao, prioridade, valor_decimal))
                 conn.commit()
+                st.success("✅ Demanda inserida com sucesso!")
+        except ValueError as ve:
+            st.error("❌ Erro: O valor informado não é um número válido")
+            raise ve
         except Exception as e:
-            st.error(f"Erro ao inserir demanda: {str(e)}")
+            st.error("❌ Erro ao inserir demanda")
+            st.error(f"Detalhes: {str(e)}")
             raise e
 
     def obter_demandas(self):
