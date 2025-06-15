@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.INFO)
 
 # Configuração da página
 st.set_page_config(page_title="Gestor de Casamento", page_icon="💒")
-st.title("Sistema de Gestão de Casamento 💒")
 
 def check_odbc_drivers():
     try:
@@ -25,7 +24,6 @@ def check_odbc_drivers():
         return False
 
 def main():
-    st.title("Sistema de Gerenciamento de Casamento 💒")
     try:
         # Verifica drivers antes de iniciar a aplicação
         if not check_odbc_drivers():
