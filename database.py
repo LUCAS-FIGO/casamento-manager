@@ -42,20 +42,22 @@ class Gasto:
 class Database:
     def __init__(self):
         try:
-            self.server = st.secrets["connections"]["sql"]["DB_SERVER"]
-            self.database = st.secrets["connections"]["sql"]["DB_NAME"]
-            self.username = st.secrets["connections"]["sql"]["DB_USER"]
-            self.password = st.secrets["connections"]["sql"]["DB_PASSWORD"]
-            
+            # Configurações do banco
             self.connection_string = (
                 "Driver={ODBC Driver 17 for SQL Server};"
-                f"Server={self.server};"
-                f"Database={self.database};"
-                f"UID={self.username};"
-                f"PWD={self.password};"
+                f"Server={st.secrets['connections']['sql']['DB_SERVER']};"
+                f"Database={st.secrets['connections']['sql']['DB_NAME']};"
+                f"UID={st.secrets['connections']['sql']['DB_USER']};"
+                f"PWD={st.secrets['connections']['sql']['DB_PASSWORD']};"
+                "Encrypt=yes;"
+                "TrustServerCertificate=no;"
+                "Connection Timeout=30;"
             )
+            # Tenta criar as tabelas ao inicializar
+            self.criar_tabelas()
+            
         except Exception as e:
-            st.error("Erro ao configurar conexão com banco de dados")
+            st.error("❌ Erro na configuração do banco de dados")
             st.error(f"Detalhes: {str(e)}")
             raise e
 
@@ -68,13 +70,13 @@ class Database:
             raise e
 
     def criar_tabelas(self):
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # Tabela Demandas
-                cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Demandas')
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Cria tabela Demandas
+            cursor.execute("""
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Demandas')
+            BEGIN
                 CREATE TABLE Demandas (
                     id INT IDENTITY(1,1) PRIMARY KEY,
                     descricao NVARCHAR(200) NOT NULL,
@@ -82,11 +84,13 @@ class Database:
                     data_criacao DATETIME DEFAULT GETDATE(),
                     valor DECIMAL(10,2)
                 )
-                """)
-                
-                # Tabela Orçamentos
-                cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orcamentos')
+            END
+            """)
+            
+            # Cria tabela Orcamentos
+            cursor.execute("""
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orcamentos')
+            BEGIN
                 CREATE TABLE Orcamentos (
                     id INT IDENTITY(1,1) PRIMARY KEY,
                     demanda_id INT,
@@ -95,15 +99,11 @@ class Database:
                     data_criacao DATETIME DEFAULT GETDATE(),
                     FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
                 )
-                """)
-                
-                conn.commit()
-                st.success("✅ Tabelas criadas/verificadas com sucesso!")
-                
-        except Exception as e:
-            st.error("❌ Erro ao criar tabelas")
-            st.error(f"Detalhes: {str(e)}")
-            raise e
+            END
+            """)
+            
+            conn.commit()
+            st.success("✅ Estrutura do banco verificada com sucesso!")
 
     def inserir_demanda(self, nome: str, descricao: str, prioridade: int, status: str) -> bool:
         try:

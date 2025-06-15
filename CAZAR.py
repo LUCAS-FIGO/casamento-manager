@@ -9,10 +9,10 @@ st.set_page_config(
 )
 
 def main():
+    st.title("Sistema de Gestão de Casamento 💒")
+    
     try:
-        st.title("Sistema de Gestão de Casamento 💒")
-        
-        # Inicializa banco de dados
+        # Inicializa conexão com banco de dados
         if 'db' not in st.session_state:
             st.session_state.db = Database()
 
