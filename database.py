@@ -1,5 +1,6 @@
 import os
 import pyodbc
+import streamlit as st
 import logging
 from dotenv import load_dotenv
 from dataclasses import dataclass
@@ -38,32 +39,36 @@ class Gasto:
     valor: Decimal
     data: datetime
 
-class DatabaseManager:
+class Database:
     def __init__(self):
-        load_dotenv()
-        
-        # Validação das variáveis de ambiente
-        required_env_vars = ['DB_SERVER', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
-        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-        if missing_vars:
-            raise ValueError(f"Variáveis de ambiente faltando: {', '.join(missing_vars)}")
+        self.server = st.secrets["connections"]["sql"]["DB_SERVER"]
+        self.database = st.secrets["connections"]["sql"]["DB_NAME"]
+        self.username = st.secrets["connections"]["sql"]["DB_USER"]
+        self.password = st.secrets["connections"]["sql"]["DB_PASSWORD"]
         
         self.connection_string = (
-            "DRIVER={ODBC Driver 17 for SQL Server};"
-            f"SERVER={os.getenv('DB_SERVER')};"
-            f"DATABASE={os.getenv('DB_NAME')};"
-            f"UID={os.getenv('DB_USER')};"
-            f"PWD={os.getenv('DB_PASSWORD')};"
-            "Encrypt=yes;TrustServerCertificate=no;"
-            "Connection Timeout=30;"
+            "Driver={SQL Server};"
+            f"Server={self.server};"
+            f"Database={self.database};"
+            f"UID={self.username};"
+            f"PWD={self.password};"
         )
-
+        
+        # Configurar logging
+        logging.basicConfig(
+            filename='database.log',
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+    
     def get_connection(self):
         try:
-            return pyodbc.connect(self.connection_string)
+            conn = pyodbc.connect(self.connection_string, timeout=30)
+            logging.info("Conexão com banco de dados estabelecida com sucesso")
+            return conn
         except pyodbc.Error as e:
-            logging.error(f"Erro ao conectar ao banco: {e}")
-            raise
+            logging.error(f"Erro ao conectar ao banco de dados: {str(e)}")
+            raise Exception("Erro de conexão com o banco de dados. Verifique as configurações.")
 
     def criar_tabelas(self):
         queries = [

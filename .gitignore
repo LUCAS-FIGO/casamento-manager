@@ -1,7 +1,22 @@
-*.db
+# Arquivos de ambiente e configuração
 .env
+*.log
+.streamlit/secrets.toml
+
+# Arquivos de cache Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Ambiente virtual
 venv/
+env/
+.venv/
+.env/
+
+# Arquivos do VS Code
 .vscode/
-.streamlit/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
