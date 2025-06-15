@@ -1,22 +1,19 @@
-# Arquivos de ambiente e configuração
-.env
-*.log
-.streamlit/secrets.toml
-
-# Arquivos de cache Python
+# Ambiente Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Ambiente virtual
+.env
 venv/
-env/
-.venv/
-.env/
 
-# Arquivos do VS Code
+# VS Code
 .vscode/
 
-# Arquivos do sistema
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+
+# Sistema
 .DS_Store
 Thumbs.db

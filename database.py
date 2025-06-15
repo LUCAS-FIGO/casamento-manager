@@ -39,7 +39,7 @@ class Gasto:
     valor: Decimal
     data: datetime
 
-class Database:
+class Database:  # Nome da classe deve ser Database, não DatabaseManager
     def __init__(self):
         self.server = st.secrets["connections"]["sql"]["DB_SERVER"]
         self.database = st.secrets["connections"]["sql"]["DB_NAME"]
