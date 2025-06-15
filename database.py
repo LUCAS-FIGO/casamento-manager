@@ -63,6 +63,9 @@ class Database:
             with self.get_connection() as conn:
                 st.success("✅ Conexão estabelecida!")
                 
+            # Após conexão bem sucedida, criar tabelas
+            self.criar_tabelas()
+                
         except Exception as e:
             st.error("❌ Erro na conexão")
             st.error(f"Detalhes: {str(e)}")
@@ -76,40 +79,46 @@ class Database:
             raise e
 
     def criar_tabelas(self):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Cria tabela Demandas
-            cursor.execute("""
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Demandas')
-            BEGIN
-                CREATE TABLE Demandas (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
-                    descricao NVARCHAR(200) NOT NULL,
-                    status NVARCHAR(50),
-                    data_criacao DATETIME DEFAULT GETDATE(),
-                    valor DECIMAL(10,2)
-                )
-            END
-            """)
-            
-            # Cria tabela Orcamentos
-            cursor.execute("""
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orcamentos')
-            BEGIN
-                CREATE TABLE Orcamentos (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
-                    demanda_id INT,
-                    fornecedor NVARCHAR(100),
-                    valor DECIMAL(10,2),
-                    data_criacao DATETIME DEFAULT GETDATE(),
-                    FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
-                )
-            END
-            """)
-            
-            conn.commit()
-            st.success("✅ Estrutura do banco verificada com sucesso!")
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Criar tabela Demandas se não existir
+                cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE Demandas (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        descricao NVARCHAR(200) NOT NULL,
+                        status NVARCHAR(50),
+                        data_criacao DATETIME DEFAULT GETDATE(),
+                        valor DECIMAL(10,2)
+                    )
+                END
+                """)
+                
+                # Criar tabela Orcamentos se não existir
+                cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE Orcamentos (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        demanda_id INT,
+                        fornecedor NVARCHAR(100),
+                        valor DECIMAL(10,2),
+                        data_criacao DATETIME DEFAULT GETDATE(),
+                        FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
+                    )
+                END
+                """)
+                
+                conn.commit()
+                st.success("✅ Tabelas criadas/verificadas com sucesso!")
+                
+        except Exception as e:
+            st.error("❌ Erro ao criar tabelas")
+            st.error(f"Detalhes: {str(e)}")
+            raise e
 
     def inserir_demanda(self, nome: str, descricao: str, prioridade: int, status: str) -> bool:
         try:
