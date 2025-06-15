@@ -1,3 +1,4 @@
 streamlit==1.45.1
 pyodbc==5.2.0
 python-dotenv==1.0.0
+unixodbc-dev==2.3.7  # Adicione esta linha para ambientes Linux
