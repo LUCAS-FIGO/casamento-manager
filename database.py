@@ -83,74 +83,68 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Criar tabela Demandas se não existir
+                # Recria tabela Demandas com todas as colunas necessárias
                 cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
-                BEGIN
-                    CREATE TABLE Demandas (
-                        id INT IDENTITY(1,1) PRIMARY KEY,
-                        descricao NVARCHAR(200) NOT NULL,
-                        status NVARCHAR(50),
-                        data_criacao DATETIME DEFAULT GETDATE(),
-                        valor DECIMAL(10,2)
-                    )
-                END
-                """)
-                
-                # Criar tabela Orcamentos se não existir
-                cursor.execute("""
-                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
-                BEGIN
-                    CREATE TABLE Orcamentos (
-                        id INT IDENTITY(1,1) PRIMARY KEY,
-                        demanda_id INT,
-                        fornecedor NVARCHAR(100),
-                        valor DECIMAL(10,2),
-                        data_criacao DATETIME DEFAULT GETDATE(),
-                        FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
-                    )
-                END
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
+                    DROP TABLE Orcamentos;
+                    
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
+                    DROP TABLE Demandas;
+
+                CREATE TABLE Demandas (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    nome NVARCHAR(100) NOT NULL,
+                    descricao NVARCHAR(200) NOT NULL,
+                    prioridade NVARCHAR(20),
+                    status NVARCHAR(50),
+                    data_criacao DATETIME DEFAULT GETDATE(),
+                    valor DECIMAL(10,2)
+                );
+
+                CREATE TABLE Orcamentos (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    demanda_id INT,
+                    fornecedor NVARCHAR(100),
+                    valor DECIMAL(10,2),
+                    data_criacao DATETIME DEFAULT GETDATE(),
+                    FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
+                );
                 """)
                 
                 conn.commit()
-                st.success("✅ Tabelas criadas/verificadas com sucesso!")
+                st.success("✅ Tabelas recriadas com sucesso!")
                 
         except Exception as e:
             st.error("❌ Erro ao criar tabelas")
             st.error(f"Detalhes: {str(e)}")
             raise e
 
-    def inserir_demanda(self, nome: str, descricao: str, prioridade: int, status: str) -> bool:
+    def inserir_demanda(self, nome, descricao, prioridade, valor=0):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO Demandas (nome, descricao, prioridade, status)
-                    VALUES (?, ?, ?, ?)
-                """, (nome, descricao, prioridade, status))
+                    INSERT INTO Demandas (nome, descricao, prioridade, status, valor)
+                    VALUES (?, ?, ?, 'Pendente', ?)
+                """, (nome, descricao, prioridade, valor))
                 conn.commit()
-                return True
         except Exception as e:
-            logging.error(f"Erro ao inserir demanda: {e}")
-            return False
+            st.error(f"Erro ao inserir demanda: {str(e)}")
+            raise e
 
     def obter_demandas(self):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM Demandas ORDER BY prioridade DESC")
-                rows = cursor.fetchall()
-                return [Demanda(
-                    id=row[0],
-                    nome=row[1],
-                    descricao=row[2],
-                    prioridade=row[3],
-                    status=row[4],
-                    data_criacao=row[5]
-                ) for row in rows]
+                cursor.execute("""
+                    SELECT id, nome, descricao, prioridade, status, data_criacao, valor
+                    FROM Demandas
+                    ORDER BY data_criacao DESC
+                """)
+                return cursor.fetchall()
         except Exception as e:
-            logging.error(f"Erro ao obter demandas: {e}")
-            return []
+            st.error(f"Erro ao obter demandas: {str(e)}")
+            raise e
 
     def inserir_orcamento(self, demanda_id: int, fornecedor: str, 
                          valor: float, descricao: str, status: str) -> bool:
