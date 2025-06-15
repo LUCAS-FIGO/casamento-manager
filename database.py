@@ -68,52 +68,42 @@ class Database:
             raise e
 
     def criar_tabelas(self):
-        queries = [
-            """
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Demandas]') AND type in (N'U'))
-            BEGIN
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Tabela Demandas
+                cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Demandas')
                 CREATE TABLE Demandas (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    nome NVARCHAR(100) NOT NULL,
-                    descricao NVARCHAR(MAX),
-                    prioridade INT,
+                    descricao NVARCHAR(200) NOT NULL,
                     status NVARCHAR(50),
-                    data_criacao DATETIME DEFAULT GETDATE()
+                    data_criacao DATETIME DEFAULT GETDATE(),
+                    valor DECIMAL(10,2)
                 )
-            END
-            """,
-            """
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Orcamentos]') AND type in (N'U'))
-            BEGIN
+                """)
+                
+                # Tabela Orçamentos
+                cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orcamentos')
                 CREATE TABLE Orcamentos (
                     id INT IDENTITY(1,1) PRIMARY KEY,
                     demanda_id INT,
                     fornecedor NVARCHAR(100),
                     valor DECIMAL(10,2),
-                    descricao NVARCHAR(MAX),
-                    status NVARCHAR(50),
+                    data_criacao DATETIME DEFAULT GETDATE(),
                     FOREIGN KEY (demanda_id) REFERENCES Demandas(id)
                 )
-            END
-            """,
-            """
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Gastos]') AND type in (N'U'))
-            BEGIN
-                CREATE TABLE Gastos (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
-                    descricao NVARCHAR(MAX),
-                    valor DECIMAL(10,2),
-                    data DATETIME DEFAULT GETDATE()
-                )
-            END
-            """
-        ]
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            for query in queries:
-                cursor.execute(query)
-            conn.commit()
+                """)
+                
+                conn.commit()
+                st.success("✅ Tabelas criadas/verificadas com sucesso!")
+                
+        except Exception as e:
+            st.error("❌ Erro ao criar tabelas")
+            st.error(f"Detalhes: {str(e)}")
+            raise e
 
     def inserir_demanda(self, nome: str, descricao: str, prioridade: int, status: str) -> bool:
         try:

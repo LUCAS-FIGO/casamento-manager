@@ -1,6 +1,4 @@
 import streamlit as st
-from decimal import Decimal
-from datetime import datetime
 from database import Database
 
 # Configuração da página
@@ -14,7 +12,7 @@ def main():
     try:
         st.title("Sistema de Gestão de Casamento 💒")
         
-        # Inicializa conexão com banco de dados
+        # Inicializa banco de dados
         if 'db' not in st.session_state:
             st.session_state.db = Database()
 
@@ -97,7 +95,7 @@ def main():
         st.sidebar.markdown("### Desenvolvido com ❤️")
     
     except Exception as e:
-        st.error("Erro na aplicação. Por favor, contate o suporte.")
+        st.error("❌ Erro na aplicação")
         st.error(f"Detalhes: {str(e)}")
 
 if __name__ == "__main__":
