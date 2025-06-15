@@ -42,31 +42,32 @@ class Gasto:
 class Database:
     def __init__(self):
         try:
-            # Configurações do banco
+            # String de conexão do Azure SQL
             self.connection_string = (
                 "Driver={ODBC Driver 18 for SQL Server};"
-                f"Server={st.secrets['connections']['sql']['DB_SERVER']};"
-                f"Database={st.secrets['connections']['sql']['DB_NAME']};"
-                f"UID={st.secrets['connections']['sql']['DB_USER']};"
-                f"PWD={st.secrets['connections']['sql']['DB_PASSWORD']};"
+                "Server=tcp:cazar-server.database.windows.net,1433;"
+                "Database=CasamentoDB;"
+                "Uid=lufigotdb;"
+                "Pwd=Senha@007;"
                 "Encrypt=yes;"
                 "TrustServerCertificate=no;"
                 "Connection Timeout=30;"
             )
-            # Tenta criar as tabelas ao inicializar
-            self.criar_tabelas()
             
+            # Testa conexão inicial
+            with self.get_connection() as conn:
+                st.success("✅ Conexão com banco de dados estabelecida!")
+                
         except Exception as e:
-            st.error("❌ Erro na configuração do banco de dados")
+            st.error("❌ Erro na conexão com banco de dados")
             st.error(f"Detalhes: {str(e)}")
             raise e
-
+            
     def get_connection(self):
         try:
             return pyodbc.connect(self.connection_string)
-        except Exception as e:
-            st.error("Erro ao conectar ao banco de dados")
-            st.error(f"Detalhes: {str(e)}")
+        except pyodbc.Error as e:
+            st.error(f"Erro de conexão: {str(e)}")
             raise e
 
     def criar_tabelas(self):
