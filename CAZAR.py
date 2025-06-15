@@ -1,8 +1,7 @@
 import streamlit as st
-from database import Database
-import logging
-
-logging.basicConfig(level=logging.INFO)
+from decimal import Decimal
+from database import Database  # Alterado de DatabaseManager para Database
+from datetime import datetime
 
 # Configuração da página
 st.set_page_config(page_title="Gestor de Casamento", page_icon="💒")
